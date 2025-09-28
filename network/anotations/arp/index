@@ -1,0 +1,78 @@
+Scapy
+
+Uso básico
+
+Aqui vou mostrar de forma teórica a relação de um comando do Scapy com o modelo OSI
+
+1 - Note que aqui estamos criando um pacote Ethernet (broadcast), camadas 1 e 2 do modelo OSI
+2 - Depois estamos usando o protocolo de transporte IP, camada 3 do modelo OSI
+3 - Por último estamos criando o tipo de transporte (menos confiável, o UDP), camada 4
+
+<Ether  dst=ff:ff:ff:ff:ff:ff type=IPv4 |<IP  frag=0 ttl=(1, 9) proto=udp dst=[Net("www.ibugsec.com.br/32")] |<UDP  |>>>
+
+
+
+
+broadcast = Ether(dst="ff:ff:ff:ff:ff:ff") //ff:ff:ff.. é um endereço broadcast, portanto o mesmo será enviado para todos
+arppacket = ARP(pdst="192.168.1.1") 
+arppacket.show()
+
+
+Portanto, ao utilizar esse comando, você está criando um objeto Ether representando um pacote Ethernet destinado a ser transmitido para todos os dispositivos na rede (broadcast). Essa construção pode ser usada como parte da criação de pacotes personalizados com Scapy para realizar várias operações de rede, como envio de pacotes de descoberta ou execução de testes na rede.
+
+O valor 0x806 que você está vendo refere-se ao tipo do pacote na camada de enlace (camada 2) do modelo OSI. Especificamente, 0x806 é o valor hexadecimal que representa o protocolo ARP (Address Resolution Protocol).
+
+O campo pdst (protocol destination) em um pacote ARP (Address Resolution Protocol) é usado para especificar o endereço IP de destino para o qual o dispositivo está procurando o endereço MAC correspondente. Vamos entender melhor como isso funciona:
+
+1. Descoberta do Endereço MAC: Quando um dispositivo precisa se comunicar com outro na mesma rede local, ele precisa saber o endereço MAC associado ao endereço IP de destino. Para descobrir isso, ele usa o ARP.
+
+2. Campo pdst no ARP: O campo pdst em um pacote ARP é usado para indicar o endereço IP de destino para o qual o dispositivo está procurando o endereço MAC correspondente. O dispositivo emite um pacote ARP de solicitação contendo seu próprio endereço MAC e IP no campo de origem e o endereço IP de destino no campo pdst.
+
+3. Broadcast ARP Request: O pacote ARP de solicitação é enviado como um broadcast, ou seja, o endereço de destino no cabeçalho Ethernet é configurado como ff:ff:ff:ff:ff:ff. Isso significa que todos os dispositivos na mesma rede local receberão o pacote.
+
+4. Resposta ARP: O dispositivo que possui o endereço IP especificado em pdst responde ao ARP Request, fornecendo seu próprio endereço MAC no campo de origem do ARP Reply.
+
+5. Atualização de Tabela ARP: O dispositivo que emitiu a solicitação ARP agora tem o endereço MAC correspondente ao endereço IP de destino e pode usar essas informações para construir os pacotes Ethernet apropriados para se comunicar com o destino.
+
+Portanto, o campo pdst é essencial para o processo de descoberta de endereços MAC na rede local, permitindo que os dispositivos encontrem uns aos outros e atualizem suas tabelas ARP.
+
+
+Alterar tabela ARP de uma máquina
+(Sessão “Change MAC in ARP table”)
+
+
+Neste exemplo temos uma máquina Kali alterando a tabela ARP no PC-1 do PC-2, ou seja, o PC-1 tinha gravado em sua tabela ARP 192.168.100.4 =  0c-91-92-7b-f1-c4, com a alteração a tabela da máquina PC-1 fica 192.168.100.4 =08-00-27-cb-7e-f5
+
+
+
+
+
+
+
+scapy: Importa o módulo Scapy, que é uma poderosa biblioteca para manipulação de pacotes de rede.
+
+ARP: Representa o protocolo ARP.
+
+op=2: Define o tipo de operação ARP como 2, indicando uma resposta ARP (ARP Reply). O valor 1 é utilizado para solicitações ARP (ARP Request).
+
+hwdst=mac: Especifica o endereço MAC de destino (Hardware Destination), indicando para qual dispositivo o pacote ARP está destinado.
+
+pdst=target_ip: Especifica o endereço IP de destino (Protocol Destination), indicando para qual IP o pacote ARP está destinado.
+
+psrc=spoofed_ip: Especifica o endereço IP de origem (Protocol Source), indicando o endereço IP que está sendo falsificado (spoofed). Este é o IP que será associado ao endereço MAC fornecido.
+
+Resumidamente, o código está construindo um pacote ARP Reply (op=2) que será enviado para a máquina com o endereço IP target_ip e endereço MAC mac, alegando falsamente que o endereço IP de origem é spoofed_ip.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
