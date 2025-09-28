@@ -1,0 +1,85 @@
+Utilitário para MAC Addrress
+
+┌──(kali㉿kali)-[~/pythonprograms/passwordcracking]
+└─$ macchanger --show eth0
+Current MAC:   08:00:27:cb:7e:f5 (CADMUS COMPUTER SYSTEMS)
+Permanent MAC: 08:00:27:cb:7e:f5 (CADMUS COMPUTER SYSTEMS)
+
+sudo macchanger --mac=AA:BB:CC:DD:EE:FF eth0
+
+Quando executamos o comando e aparece Current MAC e Permanent MAC, é normal dar confusão, mas isso significa que o Current MAC é o endereço alterado dinamicamente, e o Permanent MAC é o endereço gravado na ROM e CADMUS é o fabricante
+
+Mudar o endereço MAC por ifconfig 
+
+
+ifconfig eth0 hw ether AA:BB:CC:DD:EE:FF
+
+hw: Abreviação de "hardware", indicando que a configuração a seguir está relacionada ao hardware da interface de rede.
+
+ether: Esta parte do comando se refere à camada de enlace, ou seja, a camada de enlace de dados no modelo OSI (Open Systems Interconnection). No contexto do ifconfig, o termo "ether" está associado à tecnologia Ethernet, que é comumente usada para redes locais (LANs).
+
+
+Veja exemplo depois de alterado
+
+sudo ifconfig eth0 up
+
+┌──(kali㉿kali)-[~/pythonprograms/passwordcracking]
+└─$ ifconfig                                
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::4120:22db:67d4:8b3c  prefixlen 64  scopeid 0x20<link>
+        ether 22:33:44:55:66:77  txqueuelen 1000  (Ethernet)
+        RX packets 31324  bytes 3695558 (3.5 MiB)
+        RX errors 0  dropped 4277  overruns 0  frame 0
+        TX packets 8096  bytes 2650320 (2.5 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 20  bytes 1712 (1.6 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 20  bytes 1712 (1.6 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+        
+        
+        
+        
+ packet = scapy.ARP(op=2, pdst="10.0.2.15", hwdst="08:00:27:3f:e3:75", psrc="10.0.2.1")
+ “O IP 10.0.2.1 está no meu MAC” Isso engana a vítima e redireciona tráfego para você (spoofing).
+        
+        
+        
+LISTA DE OPERAÇÕES ACEITAS PELO SCAPY
+       
+       scapy.ARP(op=...) — Tipos de Operações ARP
+Valor (op)	Nome da operação	Descrição curta
+1	ARP Request	Está perguntando: "Qual é o MAC do IP X?" (broadcast para todos na rede)
+2	ARP Reply	Está respondendo: "O MAC do IP X é Y"
+3	RARP Request	RARP (Reverse ARP): Pergunta "Qual é meu IP? Eu sou esse MAC aqui"
+4	RARP Reply	RARP: Responde "Seu IP é X, MAC Y"
+5	DRARP Request	DRARP: Obsoleto, usado por servidores para perguntar IPs dinamicamente
+6	DRARP Reply	DRARP: Resposta com o IP
+7	DRARP Error	DRARP: Falha na resposta
+8	InARP Request	Inverse ARP: Usado em redes Frame Relay/ATM para descobrir o IP associado a um MAC
+9	InARP Reply	Inverse ARP: Responde com o IP associado ao MAC informado
+
+⚠️ Em redes reais, apenas 1 (Request) e 2 (Reply) são comumente usados.
+Outros (3-9) são históricos ou específicos de tecnologias antigas como RARP, Frame Relay, ou ATM.
+
+
+Libs para fora da LAN
+
+ 1. Scapy (sim, ainda Scapy!)
+Scapy também pode ser usado fora da LAN, desde que você esteja trabalhando com protocolos roteáveis (IP, TCP, UDP, ICMP, DNS).
+ Mas não serve para protocolos de camada 2 como ARP, que são bloqueados fora da LAN.
+ 
+ 
+ 
+  Raw sockets (Python nativo ou C)
+  Libpcap/tcpdump/Wireshark (C/C++/Go bindings)
+
+        
+ 
+        
+        
