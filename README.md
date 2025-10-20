@@ -117,7 +117,7 @@ Do **not** publicly disclose exploits without allowing time for mitigation.
 
 ## 📄 License
 
-This repository is shared for **educational purposes**. Add a license file (e.g., MIT, BSD) as appropriate to your project. The license does **not** permit illegal use or unauthorized activity.
+This repository is shared for **educational purposes**.  The license does **not** permit illegal use or unauthorized activity.
 
 ---
 
