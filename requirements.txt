@@ -1,0 +1,10 @@
+scapy>=2.5.0
+rich>=13.0.0
+requests>=2.0.0
+bullet>=2.2.0   # OR questionary>=1.10.0 (up down key)
+questionary>=1.10.0
+
+termcolor>=2.3.0
+tqdm>=4.60.0
+netifaces>=0.10.9
+paramiko>=3.0.0
