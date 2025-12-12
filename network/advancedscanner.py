@@ -40,6 +40,13 @@ def main():
         exit(0)
     portScan(tgtHost, tgtPorts)
 
+
+def get_args():
+    return [
+        {"flag": "-H", "desc": "Target host (required)"},
+        {"flag": "-p", "desc": "Port (required)"}
+    ]
+
 if __name__ == '__main__':
     main()    
 

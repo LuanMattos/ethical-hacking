@@ -75,9 +75,38 @@ def run_tool(index):
     if not tool_path.exists():
         console.print(f"[warn][!] Module not found: {tool_path}[/warn]")
         return
+    
+    # --- Load modules ---
+    spec = importlib.util.spec_from_file_location("module", tool_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+
+    # --- Has get_args? ---
+    if hasattr(module, "get_args"):
+        args_info = module.get_args()
+
+        # Show nice tables
+        table = Table(title=f"Arguments for {tool['name']}", box=box.MINIMAL_DOUBLE_HEAD)
+        table.add_column("Flag", style="cyan", justify="center")
+        table.add_column("Description", style="yellow")
+
+        for arg in args_info:
+            table.add_row(arg["flag"], arg["desc"])
+
+        console.print(table)
+    else:
+        args_info = []
+        console.print("[desc]This module does not provide argument info.\n")
+
+    # --- Answaer args ---
+    args = Prompt.ask("[option]Enter arguments (or leave empty)", default="")
+
     console.print(f"[desc]Launching [b]{tool['name']}[/b]...\n")
-    # Executa como subprocesso, ideal para scripts separados
-    os.system(f"{sys.executable} '{tool_path}'")
+
+    import subprocess
+    cmd = [sys.executable, str(tool_path)] + args.split()
+    subprocess.run(cmd)
 
 def main():
     print_logo()
