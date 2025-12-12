@@ -41,7 +41,7 @@ NETWORK_TOOLS_PATH = SCRIPTS_PATH
 
 # Mapeie aqui os módulos. O label mostrado, caminho do script e um ícone/símbolo bonito
 TOOLS = [
-    {"icon": "🌐", "name": "Advanced Scanner",      "path": "advancedscanner1/main.py",      "desc": "Network host discovery and port scanning"},
+    {"icon": "🌐", "name": "Advanced Scanner",      "path": "advancedscanner.py",           "desc": "Network host discovery and port scanning"},
     {"icon": "🤖", "name": "Backdoor & Persistence","path": "backdoor-and-persistence/main.py","desc": "Persistence & backdoor modules"},
     {"icon": "🔑", "name": "BruteSH",               "path": "brutesh/main.py",               "desc": "SSH brute force attack tool"},
     {"icon": "🔒", "name": "CryptForce",            "path": "cryptforce/main.py",            "desc": "Password/password hash cracking"},
