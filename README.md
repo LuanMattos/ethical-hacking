@@ -2,6 +2,7 @@
 [![Status](https://img.shields.io/badge/status-learning-yellow.svg)]()
 [![Focus](https://img.shields.io/badge/focus-ethical--hacking-brightgreen.svg)]()
 
+# Under construction
 
 # ⚡️ My Self-Taught Knowledge on Ethical Hacking  
 *Knowledge that I have been acquiring in a completely self-taught way*
@@ -45,6 +46,12 @@ This repository contains a collection of scripts for penetration testing and cyb
 
 ---
 
+## Usage
+- clone project https://github.com/LuanMattos/ethical-hacking.git
+- .\venv\Scripts\activate (Windows) or source venv/bin/activate (Linux)
+- cd .\network\
+- python .\zeroday.py (for options)
+
 ## 🎯 Intended Audience
 
 - Cybersecurity professionals  
@@ -58,12 +65,13 @@ This repository contains a collection of scripts for penetration testing and cyb
 
 This repository includes examples such as:
 
-- Network packet manipulation scripts  
-- Backdoor demonstrations (educational use only)  
-- Spoofing tools and traffic emulation  
-- Network analyzers/sniffers  
-- Example scripts for Software Defined Radios (SDRs)  
-- Illustrations based on RFCs
+- Advanced Scanner
+- Backdoor & Persistence (To run on victim machine)
+- Server to Backdoor & Persistence (To run on your machine)
+- BruteSH
+- CryptForce
+- Network Scanners
+- AICrack Wireless Attack
 
 > ⚠️ These tools are intended to be used **only** in isolated labs, test environments, or with **explicit authorization**.
 
