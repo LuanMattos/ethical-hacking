@@ -41,12 +41,14 @@ NETWORK_TOOLS_PATH = SCRIPTS_PATH
 
 # Mapeie aqui os módulos. O label mostrado, caminho do script e um ícone/símbolo bonito
 TOOLS = [
-    {"icon": "🌐", "name": "Advanced Scanner",      "path": "advancedscanner.py",           "desc": "Network host discovery and port scanning"},
-    {"icon": "🤖", "name": "Backdoor & Persistence","path": "backdoor-and-persistence/main.py","desc": "Persistence & backdoor modules"},
-    {"icon": "🔑", "name": "BruteSH",               "path": "brutesh/main.py",               "desc": "SSH brute force attack tool"},
-    {"icon": "🔒", "name": "CryptForce",            "path": "cryptforce/main.py",            "desc": "Password/password hash cracking"},
-    {"icon": "🔎", "name": "Network Scanners",      "path": "scanner/scanner_line_filter.py","desc": "Live packet capture and filtering"},
-    {"icon": "📡", "name": "AICrack Wireless Attack", "path": "aicrack.py",                   "desc": "Automated wireless (WPA deauth) attacks"},
+    {"icon": "🌐", "name": "Advanced Scanner",                  "path": "advancedscanner.py", "desc": "Network host discovery and port scanning"},
+    {"icon": "🤖", "name": "Backdoor & Persistence",            "path": "backdoor/backdoor-and-persistence.py","desc": "Persistence & backdoor modules"},
+    {"icon": "🤖", "name": "Backdoor & Persistence Generate EXE ", "path": "backdoor/backdoor-and-persistence-generate-exe.py","desc": "Persistence & backdoor modules"},
+    {"icon": "🤖", "name": "Backdoor & Persistence (listener)", "path": "backdoor/listener.py","desc": "Persistence & backdoor server modules"},
+    {"icon": "🔑", "name": "BruteSH",                           "path": "brutesh/main.py", "desc": "SSH brute force attack tool"},
+    {"icon": "🔒", "name": "CryptForce",                        "path": "cryptforce/main.py", "desc": "Password/password hash cracking"},
+    {"icon": "🔎", "name": "Network Scanners",                  "path": "scanner/scanner_line_filter.py","desc": "Live packet capture and filtering"},
+    {"icon": "📡", "name": "AICrack Wireless Attack",           "path": "aicrack.py", "desc": "Automated wireless (WPA deauth) attacks"},
     # Adicione mais conforme for expandindo...
 ]
 

@@ -8,3 +8,4 @@ termcolor>=2.3.0
 tqdm>=4.60.0
 netifaces>=0.10.9
 paramiko>=3.0.0
+pyinstaller>=6.18.0
