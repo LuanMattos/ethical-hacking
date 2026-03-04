@@ -71,7 +71,7 @@ def main_menu():
         )
     console.print(table)
 
-def run_tool(index):
+def run_tool(index, pre_args=""):
     tool = TOOLS[index]
     tool_path = NETWORK_TOOLS_PATH / tool["path"]
     if not tool_path.exists():
@@ -101,8 +101,11 @@ def run_tool(index):
         args_info = []
         console.print("[desc]This module does not provide argument info.\n")
 
-    # --- Answaer args ---
-    args = Prompt.ask("[option]Enter arguments (or leave empty)", default="")
+    # --- Answer args ---
+    if pre_args:
+        args = pre_args
+    else:
+        args = Prompt.ask("[option]Enter arguments (or leave empty)", default="")
 
     console.print(f"[desc]Launching [b]{tool['name']}[/b]...\n")
 
@@ -115,8 +118,28 @@ def main():
     print_description()
     while True:
         main_menu()
-        choice = Prompt.ask("\n[option]Select an option", choices=[str(i+1) for i in range(len(TOOLS))], default="1")
-        run_tool(int(choice)-1)
+        user_input = Prompt.ask("\n[option]Select an option (or option + arguments)", default="1")
+        
+        # Parse input: first token is choice, rest are args
+        tokens = user_input.strip().split()
+        if not tokens:
+            choice = "1"
+            pre_args = ""
+        else:
+            choice = tokens[0]
+            pre_args = " ".join(tokens[1:])
+        
+        try:
+            choice_idx = int(choice) - 1
+            if 0 <= choice_idx < len(TOOLS):
+                run_tool(choice_idx, pre_args)
+            else:
+                console.print("[warn]Invalid option number.[/warn]")
+                continue
+        except ValueError:
+            console.print("[warn]Please enter a valid option number.[/warn]")
+            continue
+        
         again = Prompt.ask("[option]Back to menu? (y/n)", choices=["y", "n"], default="y")
         if again == "n":
             console.print("[desc]Goodbye!")
