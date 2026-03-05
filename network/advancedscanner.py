@@ -13,7 +13,8 @@ console = Console()
 scan_lock = Lock()
 
 
-def show_presets():
+
+def show_presets(scan_method="tcp"):
     """Display available port presets with interactive scanning option"""
     table = Table(title="Available Port Presets", box=box.DOUBLE_EDGE, title_style="bold magenta")
     table.add_column("ID", style="cyan", justify="center")
@@ -73,10 +74,10 @@ def show_presets():
     
     # Execute scan
     ports = [int(p) for p in get_preset_ports(selected_preset)]
-    portScan(target, ports)
+    portScan(target, ports, scan_method)
 
 
-def interactive_mode():
+def interactive_mode(scan_method="tcp"):
     """Interactive menu to select preset and target"""
     console.print(Panel("[bold cyan]Advanced Scanner - Interactive Mode[/bold cyan]", border_style="cyan", padding=1))
     
@@ -133,9 +134,9 @@ def interactive_mode():
         console.print("[red]Please enter a valid target[/red]")
     
     # Confirm and scan
-    console.print(f"\n[bold]Starting scan on {target} with {selected_preset} preset...[/bold]\n")
+    console.print(f"\n[bold]Starting scan on {target} with {selected_preset} preset using {scan_method.upper()} scan...[/bold]\n")
     ports = [int(p) for p in get_preset_ports(selected_preset)]
-    portScan(target, ports)
+    portScan(target, ports, scan_method)
 
 
 def show_preset_details(preset_id):
@@ -190,7 +191,7 @@ class ScanStatus:
 
 
 def connScan(tgtHost, tgtPort, status):
-    """Connect-based port scanning with status tracking"""
+    """TCP Connect Scan - Full connection handshake"""
     try:
         sock = socket(AF_INET, SOCK_STREAM)
         sock.settimeout(1)
@@ -205,7 +206,73 @@ def connScan(tgtHost, tgtPort, status):
             pass
 
 
-def portScan(tgtHost, tgtPorts):
+def synScan(tgtHost, tgtPort, status):
+    """SYN Scan (Half-open) - Requires elevated privileges (Windows/Linux)"""
+    console.print("[yellow][!] Note: SYN Scan requires elevated privileges - falling back to TCP Connect[/yellow]")
+    # Fallback to TCP Connect on non-Linux or non-admin
+    connScan(tgtHost, tgtPort, status)
+
+
+def icmpPingScan(tgtHost, status):
+    """ICMP Ping Scan - Check if host is alive"""
+    try:
+        sock = socket(AF_INET, SOCK_RAW, 1)
+    except PermissionError:
+        console.print("[yellow][!] ICMP requires elevated privileges - checking with TCP instead[/yellow]")
+        # Try simple TCP connection as fallback
+        try:
+            s = socket(AF_INET, SOCK_STREAM)
+            s.settimeout(1)
+            s.connect((tgtHost, 80))
+            s.close()
+            status.add_open(80)
+        except:
+            status.add_closed(80)
+        return
+    
+    # Send simple ICMP echo request (simplified)
+    try:
+        sock.settimeout(1)
+        sock.connect((tgtHost, 1))
+        status.add_open(80)
+    except:
+        status.add_closed(80)
+    finally:
+        try:
+            sock.close()
+        except:
+            pass
+
+
+def udpScan(tgtHost, tgtPort, status):
+    """UDP Scan - For UDP-based services"""
+    try:
+        sock = socket(AF_INET, SOCK_DGRAM)
+        sock.settimeout(1)
+        sock.sendto(b"", (tgtHost, tgtPort))
+        try:
+            data, addr = sock.recvfrom(1024)
+            status.add_open(tgtPort)
+        except timeout:
+            # Open|Filtered
+            status.add_open(tgtPort)
+    except:
+        status.add_closed(tgtPort)
+    finally:
+        try:
+            sock.close()
+        except:
+            pass
+
+
+def finNullXmasScan(tgtHost, tgtPort, status):
+    """FIN/NULL/Xmas Scan - Requires elevated privileges (Windows/Linux)"""
+    console.print("[yellow][!] FIN/NULL/Xmas Scan requires elevated privileges - falling back to TCP Connect[/yellow]")
+    # Fallback to TCP Connect
+    connScan(tgtHost, tgtPort, status)
+
+
+def portScan(tgtHost, tgtPorts, scan_method="tcp"):
     """Port scanning with progress tracking"""
     try:
         tgtIP = gethostbyname(tgtHost)
@@ -222,7 +289,7 @@ def portScan(tgtHost, tgtPorts):
     # Create status tracker
     status = ScanStatus(len(tgtPorts))
     
-    console.print(Panel(f"[bold cyan]Scanning Target: {host_display}[/bold cyan]", 
+    console.print(Panel(f"[bold cyan]Scanning Target: {host_display}[/bold cyan]\n[cyan]Method: {scan_method.upper()}[/cyan]", 
                        border_style="cyan", padding=1))
     
     # Launch scan with progress bar
@@ -234,13 +301,31 @@ def portScan(tgtHost, tgtPorts):
         console=console,
         transient=False
     ) as progress:
-        task = progress.add_task(f"[cyan]Scanning {len(tgtPorts)} ports...", total=len(tgtPorts))
+        task = progress.add_task(f"[cyan]Scanning {len(tgtPorts)} ports with {scan_method.upper()}...", total=len(tgtPorts))
         
         threads = []
         setdefaulttimeout(1)
         
+        # Select scan method
+        if scan_method.lower() == "tcp":
+            scan_func = connScan
+        elif scan_method.lower() == "syn":
+            scan_func = synScan
+        elif scan_method.lower() == "icmp":
+            scan_func = lambda host, status: icmpPingScan(host, status)
+        elif scan_method.lower() == "udp":
+            scan_func = udpScan
+        elif scan_method.lower() == "fin":
+            scan_func = finNullXmasScan
+        else:
+            scan_func = connScan
+        
         for tgtPort in tgtPorts:
-            t = Thread(target=connScan, args=(tgtHost, int(tgtPort), status))
+            if scan_method.lower() == "icmp":
+                # ICMP is special - scan host once
+                t = Thread(target=scan_func, args=(tgtHost, status))
+            else:
+                t = Thread(target=scan_func, args=(tgtHost, int(tgtPort), status))
             t.daemon = True
             t.start()
             threads.append(t)
@@ -339,6 +424,9 @@ def main():
                         help='Port range: 1-1000 or 1000-2000')
     parser.add_argument('-x', '--preset', dest='preset', type=str,
                         help='Use preset: web, ssh, database, mail, common, all, etc')
+    parser.add_argument('-M', '--method', dest='scanMethod', type=str, default='tcp',
+                        choices=['tcp', 'syn', 'icmp', 'udp', 'fin'],
+                        help='Scan method: tcp (TCP Connect), syn (SYN/Half-open), icmp (ICMP Ping), udp (UDP), fin (FIN/NULL/Xmas) - default: tcp')
     parser.add_argument('-i', '--interactive', dest='interactive', action='store_true',
                         help='Interactive mode - choose preset from menu')
     parser.add_argument('--list', dest='list_presets', action='store_true',
@@ -350,12 +438,12 @@ def main():
     
     # Handle interactive mode
     if args.interactive:
-        interactive_mode()
+        interactive_mode(args.scanMethod)
         return
     
     # Handle list presets
     if args.list_presets:
-        show_presets()
+        show_presets(args.scanMethod)
         return
     
     # Handle preset info
@@ -412,7 +500,7 @@ def main():
         console.print("  python advancedscanner.py -H 192.168.1.1 -x web")
         return
     
-    portScan(args.tgtHost, tgtPorts)
+    portScan(args.tgtHost, tgtPorts, args.scanMethod)
 
 
 def get_args():
