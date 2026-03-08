@@ -275,6 +275,25 @@ FIN/NULL/Xmas (-M fin):
 [*] Scan Complete - Found 3 open ports
 ```
 
+### Banner Grabbing Enhancements / Улучшенное получение баннеров / Aprimoramentos de captura de banner
+
+To improve service identification the scanner now attempts multiple banner grabbing strategies when a port is discovered open.  If the initial read returns nothing, the tool will send one of several known probes (mimicking `nmap` behavior) before giving up:
+
+- **GET / HTTP/1.0**
+- **HEAD / HTTP/1.0**
+- **GET / HTTP/1.1** with appropriate Host header
+- **HELLO** and **QUIT** commands for simple text protocols
+
+Timeout has been increased to **5 seconds** per attempt, which helps with slow or filtered services (e.g. TCP 80, 53, 17998).
+
+> **English:** Banner grabbing now tries passive receive first, then the HTTP/HELLO/QUIT probes. This gives better results on servers that do not automatically send a banner.
+> 
+> **Português:** A captura de banner agora tenta primeiro receber passivamente e, caso não haja resposta, envia requisições HTTP/HELLO/QUIT. O timeout foi aumentado para 5 segundos para melhorar em serviços lentos.
+> 
+> **Русский:** Получение баннера сначала пытается просто прочитать данные, а затем посылает HTTP/HELLO/QUIT запросы, если ничего не пришло. Таймаут увеличен до 5 секунд для медленных сервисов.
+
+The `-i` interactive mode and command-line results display any successfully grabbed banner alongside the port information.
+
 ### See Also
 
 - **[SCANNER_METHODS.md](SCANNER_METHODS.md)** - Detailed technical explanations (English, Portuguese, Russian)
