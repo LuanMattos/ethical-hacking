@@ -114,15 +114,32 @@ SCRIPTS_PATH = Path(__file__).parent
 NETWORK_TOOLS_PATH = SCRIPTS_PATH
 
 # Mapeie aqui os módulos. O label mostrado, caminho do script e um ícone/símbolo bonito
+# "name" e "desc" agora são dicionários com chaves de idioma para facilitar a tradução
 TOOLS = [
-    {"icon": "🌐", "name": "Advanced Scanner",                  "path": "advancedscanner.py", "desc": "Network host discovery and port scanning"},
-    {"icon": "🤖", "name": "Backdoor & Persistence",            "path": "backdoor/backdoor-and-persistence.py","desc": "Persistence & backdoor modules"},
-    {"icon": "🤖", "name": "Backdoor & Persistence Generate EXE ", "path": "backdoor/backdoor-and-persistence-generate-exe.py","desc": "Persistence & backdoor modules"},
-    {"icon": "🤖", "name": "Backdoor & Persistence (listener)", "path": "backdoor/listener.py","desc": "Persistence & backdoor server modules"},
-    {"icon": "🔑", "name": "BruteSH",                           "path": "brutesh/main.py", "desc": "SSH brute force attack tool"},
-    {"icon": "🔒", "name": "CryptForce",                        "path": "cryptforce/main.py", "desc": "Password/password hash cracking"},
-    {"icon": "🔎", "name": "Network Scanners",                  "path": "scanner/scanner_line_filter.py","desc": "Live packet capture and filtering"},
-    {"icon": "📡", "name": "AICrack Wireless Attack",           "path": "aicrack.py", "desc": "Automated wireless (WPA deauth) attacks"},
+    {"icon": "🌐", "name": {"en": "Advanced Scanner", "pt": "Scanner Avançado", "ru": "Advanced Scanner"},
+                 "path": "advancedscanner.py",
+                 "desc": {"en": "Network host discovery and port scanning", "pt": "Descoberta de hosts e varredura de portas de rede", "ru": "Network host discovery and port scanning"}},
+    {"icon": "🤖", "name": {"en": "Backdoor & Persistence", "pt": "Backdoor e Persistência", "ru": "Backdoor & Persistence"},
+                 "path": "backdoor/backdoor-and-persistence.py",
+                 "desc": {"en": "Persistence & backdoor modules", "pt": "Módulos de persistência e backdoor", "ru": "Persistence & backdoor modules"}},
+    {"icon": "🤖", "name": {"en": "Backdoor & Persistence Generate EXE", "pt": "Gerar EXE de Backdoor e Persistência", "ru": "Backdoor & Persistence Generate EXE"},
+                 "path": "backdoor/backdoor-and-persistence-generate-exe.py",
+                 "desc": {"en": "Persistence & backdoor modules", "pt": "Módulos de persistência e backdoor", "ru": "Persistence & backdoor modules"}},
+    {"icon": "🤖", "name": {"en": "Backdoor & Persistence (listener)", "pt": "Backdoor e Persistência (ouvinte)", "ru": "Backdoor & Persistence (listener)"},
+                 "path": "backdoor/listener.py",
+                 "desc": {"en": "Persistence & backdoor server modules", "pt": "Módulos de servidor de persistência e backdoor", "ru": "Persistence & backdoor server modules"}},
+    {"icon": "🔑", "name": {"en": "BruteSH", "pt": "BruteSH", "ru": "BruteSH"},
+                 "path": "brutesh/main.py",
+                 "desc": {"en": "SSH brute force attack tool", "pt": "Ferramenta de ataque de força bruta SSH", "ru": "SSH brute force attack tool"}},
+    {"icon": "🔒", "name": {"en": "CryptForce", "pt": "CryptForce", "ru": "CryptForce"},
+                 "path": "cryptforce/main.py",
+                 "desc": {"en": "Password/password hash cracking", "pt": "Quebra de senhas/hash de senhas", "ru": "Password/password hash cracking"}},
+    {"icon": "🔎", "name": {"en": "Network Scanners", "pt": "Scanners de Rede", "ru": "Network Scanners"},
+                 "path": "scanner/scanner_line_filter.py",
+                 "desc": {"en": "Live packet capture and filtering", "pt": "Captura e filtragem de pacotes ao vivo", "ru": "Live packet capture and filtering"}},
+    {"icon": "📡", "name": {"en": "AICrack Wireless Attack", "pt": "AICrack Ataque Wireless", "ru": "AICrack Wireless Attack"},
+                 "path": "aicrack.py",
+                 "desc": {"en": "Automated wireless (WPA deauth) attacks", "pt": "Ataques wireless automatizados (desautenticação WPA)", "ru": "Automated wireless (WPA deauth) attacks"}},
     # Adicione mais conforme for expandindo...
 ]
 
@@ -208,26 +225,29 @@ def show_examples(strings, lang="en"):
     console.print(table)
     console.print(f"\n[warn]{example_data['note']}[/warn]\n")
 
-def main_menu(strings):
+def main_menu(strings, lang):
     table = Table(title=strings['available_modules'], box=box.DOUBLE_EDGE, title_style="bold magenta")
     table.add_column(strings['option'], style="option", justify="center")
     table.add_column(strings['module'], style="option")
     table.add_column(strings['description'], style="desc")
     for idx, tool in enumerate(TOOLS, 1):
+        # resolve localized name/description
+        name = tool['name'].get(lang, tool['name'].get('en', '')) if isinstance(tool['name'], dict) else tool['name']
+        desc = tool['desc'].get(lang, tool['desc'].get('en', '')) if isinstance(tool['desc'], dict) else tool['desc']
         table.add_row(
             f"[bold blue]{tool['icon']} {idx}[/bold blue]",
-            f"[bold]{tool['name']}[/bold]",
-            tool['desc']
+            f"[bold]{name}[/bold]",
+            desc
         )
     # Add Examples option
     table.add_row(
         f"[bold blue]📚 {len(TOOLS) + 1}[/bold blue]",
         f"[bold]{strings['examples']}[/bold]",
-        strings.get('examples_desc', 'Scanner ICMP/TCP/UDP usage examples')
+        strings.get('examples_desc', strings.get('examples_desc', 'Scanner ICMP/TCP/UDP usage examples'))
     )
     console.print(table)
 
-def run_tool(index, pre_args="", strings=None):
+def run_tool(index, pre_args="", strings=None, lang='en'):
     if strings is None:
         strings = LANGUAGES['en']
     
@@ -242,13 +262,15 @@ def run_tool(index, pre_args="", strings=None):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
+    # resolve localized name for display
+    name = tool['name'].get(lang, tool['name'].get('en', '') ) if isinstance(tool['name'], dict) else tool['name']
 
     # --- Has get_args? ---
     if hasattr(module, "get_args"):
         args_info = module.get_args()
 
         # Show nice tables
-        title = f"{strings['arguments_for']} {tool['name']}"
+        title = f"{strings['arguments_for']} {name}"
         table = Table(title=title, box=box.MINIMAL_DOUBLE_HEAD)
         table.add_column("Flag", style="cyan", justify="center")
         table.add_column("Description", style="yellow")
@@ -268,7 +290,7 @@ def run_tool(index, pre_args="", strings=None):
         prompt_text = f"[option]{strings['enter_arguments']}"
         args = Prompt.ask(prompt_text, default="")
 
-    launching_text = f"[desc]{strings['launching']} [b]{tool['name']}[/b]...\n"
+    launching_text = f"[desc]{strings['launching']} [b]{name}[/b]...\n"
     console.print(launching_text)
 
     import subprocess
@@ -293,7 +315,7 @@ def main():
     print_description(strings)
     
     while True:
-        main_menu(strings)
+        main_menu(strings, lang)
         prompt_text = f"\n[option]{strings['select_option']}"
         user_input = Prompt.ask(prompt_text, default="1")
         
@@ -310,16 +332,12 @@ def main():
             choice_idx = int(choice) - 1
             if choice_idx == len(TOOLS):  # Examples option
                 # Detect language from strings
-                detected_lang = "en"
-                if "iniciando" in strings.get("launching", "").lower():
-                    detected_lang = "pt"
-                elif "запуск" in strings.get("launching", "").lower():
-                    detected_lang = "ru"
+                detected_lang = lang
                 show_examples(strings, detected_lang)
                 Prompt.ask(f"\n[option]{strings['press_enter']}", default="")
                 continue
             elif 0 <= choice_idx < len(TOOLS):
-                run_tool(choice_idx, pre_args, strings)
+                run_tool(choice_idx, pre_args, strings, lang)
             else:
                 console.print(f"[warn]{strings['invalid_option']}[/warn]")
                 continue

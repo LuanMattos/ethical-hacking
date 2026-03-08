@@ -9,8 +9,45 @@ from rich.panel import Panel
 from rich import box
 from ports_database import PORTS_DATABASE, get_preset_names, get_preset_ports, get_preset_info
 
+# build a simple lookup mapping port -> (service, description)
+PORT_INFO = {}
+for preset in PORTS_DATABASE.values():
+    for p in preset.get("ports", []):
+        try:
+            portnum = int(p.get("port", 0))
+        except Exception:
+            continue
+        PORT_INFO[portnum] = (p.get("service", ""), p.get("description", ""))
+
 console = Console()
 scan_lock = Lock()
+
+# global flag to enable banner grabbing after open-port detection
+BANNER_MODE = False
+
+
+def grab_banner(host, port):
+    """Attempt to retrieve a service banner from an open TCP port.
+
+    A simple connect + recv(1024). Returns a decoded string or None if
+    nothing was received or the attempt failed.
+    """
+    try:
+        sock = socket(AF_INET, SOCK_STREAM)
+        sock.settimeout(2)
+        sock.connect((host, port))
+        data = sock.recv(1024)
+        if not data:
+            return None
+        # decode gracefully and strip newline/NULLs
+        return data.decode('utf-8', errors='ignore').strip('\r\n\x00')
+    except Exception:
+        return None
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
 
 
 
@@ -77,8 +114,8 @@ def show_presets(scan_method="tcp"):
     portScan(target, ports, scan_method)
 
 
-def interactive_mode(scan_method="tcp"):
-    """Interactive menu to select preset and target"""
+def interactive_mode(scan_method="tcp", banner=False):
+    """Interactive menu to select preset, method, and optional banner grabbing."""
     console.print(Panel("[bold cyan]Advanced Scanner - Interactive Mode[/bold cyan]", border_style="cyan", padding=1))
     
     # Show available presets
@@ -133,8 +170,27 @@ def interactive_mode(scan_method="tcp"):
             break
         console.print("[red]Please enter a valid target[/red]")
     
+    # Ask for method if not provided
+    if not scan_method:
+        scan_method = console.input("[cyan]Scan method (tcp/syn/icmp/udp/fin) [tcp]: [/cyan]").strip().lower() or "tcp"
+    else:
+        # allow user to override default method
+        override = console.input(f"[cyan]Use default method '{scan_method}'? (y/n): [/cyan]").strip().lower()
+        if override == 'n':
+            scan_method = console.input("[cyan]New scan method (tcp/syn/icmp/udp/fin): [/cyan]").strip().lower() or "tcp"
+    
+    # Banner option
+    if not banner:
+        use_banner = console.input("[cyan]Grab banners for open ports? (y/n) [n]: [/cyan]").strip().lower()
+        if use_banner == 'y':
+            banner = True
+    
+    # apply banner setting globally
+    global BANNER_MODE
+    BANNER_MODE = banner
+    
     # Confirm and scan
-    console.print(f"\n[bold]Starting scan on {target} with {selected_preset} preset using {scan_method.upper()} scan...[/bold]\n")
+    console.print(f"\n[bold]Starting scan on {target} with {selected_preset} preset using {scan_method.upper()} scan{' with banners' if banner else ''}...[/bold]\n")
     ports = [int(p) for p in get_preset_ports(selected_preset)]
     portScan(target, ports, scan_method)
 
@@ -273,7 +329,12 @@ def finNullXmasScan(tgtHost, tgtPort, status):
 
 
 def portScan(tgtHost, tgtPorts, scan_method="tcp"):
-    """Port scanning with progress tracking"""
+    """Port scanning with progress tracking
+
+    If :pyvar:`BANNER_MODE` is True, perform a banner grab for every open
+    port after the scan and append the banner text to the description
+    column in the results table.
+    """
     try:
         tgtIP = gethostbyname(tgtHost)
     except:
@@ -344,23 +405,48 @@ def portScan(tgtHost, tgtPorts, scan_method="tcp"):
     # Display results
     print()
     
-    # Table for results
+    # Determine if we should hide closed ports (large/full-range scans)
+    show_closed = True
+    if len(tgtPorts) >= 10000:
+        show_closed = False
+        if status.open_ports:
+            console.print("[yellow]Note: suppressing closed ports for large scan, only showing open ports[/yellow]")
+        else:
+            console.print("[yellow]Note: suppressing closed ports for large scan; no open ports detected[/yellow]")
+    
+    # Table for results (include service/description when available)
     table = Table(title="Scan Results", box=box.DOUBLE_EDGE, title_style="bold magenta")
     table.add_column("Port", style="cyan", justify="center")
     table.add_column("Status", justify="center")
+    table.add_column("Description", style="yellow")
     
     if status.open_ports:
         for port in sorted(status.open_ports):
-            table.add_row(f"{port}/tcp", "[green][+] OPEN[/green]")
+            svc, desc = PORT_INFO.get(port, ("", ""))
+            desc_text = desc or svc
+            if BANNER_MODE:
+                banner = grab_banner(tgtHost, port)
+                if banner:
+                    desc_text = f"{desc_text} | banner: {banner}"
+            table.add_row(f"{port}/tcp", "[green][+] OPEN[/green]", desc_text)
+    elif not show_closed:
+        # no open ports in large scan; don't print anything else
+        console.print("[green]No open ports found.[/green]")
     
-    if status.closed_ports:
+    if show_closed and status.closed_ports:
         for port in sorted(status.closed_ports):
-            table.add_row(f"{port}/tcp", "[dim][-] Closed[/dim]")
+            svc, desc = PORT_INFO.get(port, ("", ""))
+            desc_text = desc or svc
+            table.add_row(f"{port}/tcp", "[dim][-] Closed[/dim]", desc_text)
     
-    console.print(table)
+    if status.open_ports or show_closed:
+        console.print(table)
     
     # Summary
-    summary_text = f"\n[bold]Summary:[/bold] [green]{len(status.open_ports)} open[/green], [dim]{len(status.closed_ports)} closed[/dim] out of [cyan]{len(tgtPorts)}[/cyan] ports scanned"
+    if show_closed:
+        summary_text = f"\n[bold]Summary:[/bold] [green]{len(status.open_ports)} open[/green], [dim]{len(status.closed_ports)} closed[/dim] out of [cyan]{len(tgtPorts)}[/cyan] ports scanned"
+    else:
+        summary_text = f"\n[bold]Summary:[/bold] [green]{len(status.open_ports)} open[/green] out of [cyan]{len(tgtPorts)}[/cyan] ports scanned (closed ports hidden)"
     console.print(summary_text)
 
 
@@ -403,7 +489,20 @@ def main():
   ntp       → NTP Time (1 port)
   vpn       → OpenVPN, IKE, PPTP (3 ports)
   common    → Top 20 most used ports
-  all       → Comprehensive scan (ports 1-10000)
+  all       → Comprehensive scan (ports 1-65535)
+
+[WHAT EACH PRESET SCANS]
+  -x web        → 80(HTTP), 443(HTTPS), 3000, 5000, 8080, 8443...
+  -x ssh        → 22(SSH), 23(Telnet), 3389(RDP), 5900(VNC)
+  -x database   → 3306(MySQL), 5432(PostgreSQL), 1433(MSSQL)...
+  -x mail       → 25(SMTP), 110(POP3), 143(IMAP), 587, 993, 995
+  -x common     → Top 20 - 22, 25, 53, 80, 110, 143, 443, 445...
+  -x all        → All ports 1-65535 (comprehensive scan)
+
+# new section for banner
+[ADDITIONAL FLAGS]
+  -M method    → Scan method: tcp/syn/icmp/udp/fin
+  -B           → Grab banners from open ports (slows scan)
 
 [WHAT EACH PRESET SCANS]
   -x web        → 80(HTTP), 443(HTTPS), 3000, 5000, 8080, 8443...
@@ -427,6 +526,8 @@ def main():
     parser.add_argument('-M', '--method', dest='scanMethod', type=str, default='tcp',
                         choices=['tcp', 'syn', 'icmp', 'udp', 'fin'],
                         help='Scan method: tcp (TCP Connect), syn (SYN/Half-open), icmp (ICMP Ping), udp (UDP), fin (FIN/NULL/Xmas) - default: tcp')
+    parser.add_argument('-B', '--banner', dest='banner', action='store_true',
+                        help='Grab a banner from each open port (slow)')
     parser.add_argument('-i', '--interactive', dest='interactive', action='store_true',
                         help='Interactive mode - choose preset from menu')
     parser.add_argument('--list', dest='list_presets', action='store_true',
@@ -438,8 +539,15 @@ def main():
     
     # Handle interactive mode
     if args.interactive:
-        interactive_mode(args.scanMethod)
+        # pass both scan method and banner preference into interactive mode
+        interactive_mode(args.scanMethod, banner=args.banner)
         return
+
+    # set global banner flag early so portScan can use it
+    global BANNER_MODE
+    if args.banner:
+        BANNER_MODE = True
+
     
     # Handle list presets
     if args.list_presets:
@@ -509,6 +617,8 @@ def get_args():
         {"flag": "-x, --preset", "desc": "Quick preset: web, ssh, database, mail, common, all"},
         {"flag": "-p, --ports", "desc": "Manual ports: 80,443,22 or 8080-8090"},
         {"flag": "-r, --range", "desc": "Port range: 1-1000"},
+        {"flag": "-M, --method", "desc": "Scan method: tcp/syn/icmp/udp/fin"},
+        {"flag": "-B, --banner", "desc": "Grab banner from open ports"},
         {"flag": "-i, --interactive", "desc": "Interactive mode - choose from menu"},
         {"flag": "--list", "desc": "List all presets"},
         {"flag": "--info PRESET", "desc": "Details of preset"},

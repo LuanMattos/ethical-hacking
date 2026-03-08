@@ -133,11 +133,11 @@ PORTS_DATABASE = {
     },
     
     "all": {
-        "name": "All Common Ports (1-10000)",
-        "description": "Scan first 10000 ports for discovery",
+        "name": "All Ports (1-65535)",
+        "description": "Comprehensive scan of well-known port range",
         "ports": [
             {"port": f"{i}", "service": f"Port {i}", "description": ""} 
-            for i in range(1, 10001)
+            for i in range(1, 65536)
         ]
     }
 }
