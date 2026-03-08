@@ -294,10 +294,44 @@ def connScan(tgtHost, tgtPort, status):
 
 
 def synScan(tgtHost, tgtPort, status):
-    """SYN Scan (Half-open) - Requires elevated privileges (Windows/Linux)"""
-    console.print("[yellow][!] Note: SYN Scan requires elevated privileges - falling back to TCP Connect[/yellow]")
-    # Fallback to TCP Connect on non-Linux or non-admin
-    connScan(tgtHost, tgtPort, status)
+    print(" \n COMER SEU CU \n ")
+    """SYN Scan (Half-open) - Requires elevated privileges (Windows/Linux)
+
+    Attempts a half-open scan using raw sockets via scapy. If the process
+    lacks permissions or if any error occurs we fall back to a normal TCP
+    connect scan.  The previous implementation unconditionally printed a
+    warning and never performed a SYN scan, which caused confusion when
+    running as administrator.  The new logic tries once and only shows the
+    warning when it actually needs to fall back.
+    """
+    try:
+        # scapy imports are relatively heavy; import on demand to keep
+        # startup time reasonable and to avoid breaking users without scapy.
+        from scapy.all import IP, TCP, sr1, conf
+
+        # make scapy quiet
+        conf.verb = 0
+
+        pkt = IP(dst=tgtHost) / TCP(dport=int(tgtPort), flags="S")
+        resp = sr1(pkt, timeout=1)
+
+        # resp == None means no reply (filtered/closed); a SYN-ACK means open
+        if resp is None:
+            status.add_closed(tgtPort)
+        elif resp.haslayer(TCP) and resp[TCP].flags & 0x12 == 0x12:
+            status.add_open(tgtPort)
+        else:
+            status.add_closed(tgtPort)
+    except PermissionError:
+        console.print("[yellow][!] SYN Scan requires elevated privileges - falling back to TCP Connect[/yellow]")
+        connScan(tgtHost, tgtPort, status)
+    except ImportError:
+        # scapy not installed, fallback gracefully
+        console.print("[yellow][!] scapy not available, using TCP Connect instead[/yellow]")
+        connScan(tgtHost, tgtPort, status)
+    except Exception as e:
+        console.print(f"[yellow][!] SYN scan failed ({e}) - falling back to TCP Connect[/yellow]")
+        connScan(tgtHost, tgtPort, status)
 
 
 def icmpPingScan(tgtHost, status):
@@ -399,37 +433,43 @@ def portScan(tgtHost, tgtPorts, scan_method="tcp"):
         setdefaulttimeout(1)
         
         # Select scan method
-        if scan_method.lower() == "tcp":
-            scan_func = connScan
-        elif scan_method.lower() == "syn":
-            scan_func = synScan
-        elif scan_method.lower() == "icmp":
-            scan_func = lambda host, status: icmpPingScan(host, status)
-        elif scan_method.lower() == "udp":
-            scan_func = udpScan
-        elif scan_method.lower() == "fin":
-            scan_func = finNullXmasScan
+        if scan_method.lower() == "syn":
+            # SYN scan must be sequential due to scapy thread-safety issues
+            for i in range(len(tgtPorts)):
+                tgtPort = tgtPorts[i]
+                synScan(tgtHost, int(tgtPort), status)
+                progress.update(task, completed=i + 1)
         else:
-            scan_func = connScan
-        
-        for tgtPort in tgtPorts:
-            if scan_method.lower() == "icmp":
-                # ICMP is special - scan host once
-                t = Thread(target=scan_func, args=(tgtHost, status))
+            # For other methods, use threading
+            if scan_method.lower() == "tcp":
+                scan_func = connScan
+            elif scan_method.lower() == "icmp":
+                scan_func = lambda host, status: icmpPingScan(host, status)
+            elif scan_method.lower() == "udp":
+                scan_func = udpScan
+            elif scan_method.lower() == "fin":
+                scan_func = finNullXmasScan
             else:
-                t = Thread(target=scan_func, args=(tgtHost, int(tgtPort), status))
-            t.daemon = True
-            t.start()
-            threads.append(t)
-        
-        # Update progress as threads complete
-        while status.completed < len(tgtPorts):
-            progress.update(task, completed=status.completed)
-            time.sleep(0.1)
-        
-        # Wait for all threads to finish
-        for t in threads:
-            t.join(timeout=0.1)
+                scan_func = connScan
+            
+            for tgtPort in tgtPorts:
+                if scan_method.lower() == "icmp":
+                    # ICMP is special - scan host once
+                    t = Thread(target=scan_func, args=(tgtHost, status))
+                else:
+                    t = Thread(target=scan_func, args=(tgtHost, int(tgtPort), status))
+                t.daemon = True
+                t.start()
+                threads.append(t)
+            
+            # Update progress as threads complete
+            while status.completed < len(tgtPorts):
+                progress.update(task, completed=status.completed)
+                time.sleep(0.1)
+            
+            # Wait for all threads to finish
+            for t in threads:
+                t.join(timeout=0.1)
         
         progress.update(task, completed=len(tgtPorts))
     

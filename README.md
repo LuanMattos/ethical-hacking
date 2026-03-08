@@ -87,10 +87,14 @@ The **Advanced Port Scanner** (`advancedscanner.py`) supports multiple scanning 
 | Method | Flag | Description | Speed | Stealth | Privilege | Best For |
 |--------|------|-------------|-------|---------|-----------|----------|
 | **TCP Connect** | `-M tcp` | Full 3-way handshake (SYN→SYN-ACK→ACK) | Slow | ❌ Low | None | Accuracy, firewalls |
-| **SYN Stealth** | `-M syn` | Half-open connection (SYN→SYN-ACK only) | Fast | ✅ High | Admin/Root | IDS evasion |
+| **SYN Stealth** | `-M syn` | Half-open connection (SYN→SYN-ACK only) - Sequential scan with auto-fallback | Medium* | ✅ High | Auto-fallback** | IDS evasion |
 | **ICMP Ping** | `-M icmp` | ICMP Echo requests for host discovery | Very Fast | Medium | Admin/Root | Initial recon |
 | **UDP Scan** | `-M udp` | Connectionless UDP probes | Slow | Medium | None | Service detection |
 | **FIN/NULL/Xmas** | `-M fin` | TCP flags scanning for stealth | Fast | ✅ Very High | Admin/Root | Deep firewall analysis |
+
+> **Notes:**  
+> *SYN scan is performed sequentially (not parallel) due to scapy thread-safety limitations, making it slower than parallel TCP scans for large port ranges.  
+> **SYN scan attempts raw socket operations and automatically falls back to TCP Connect if elevated privileges are unavailable - no manual admin mode required.
 
 ### CLI Flags Reference
 
