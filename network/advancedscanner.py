@@ -29,25 +29,56 @@ BANNER_MODE = False
 def grab_banner(host, port):
     """Attempt to retrieve a service banner from an open TCP port.
 
-    A simple connect + recv(1024). Returns a decoded string or None if
-    nothing was received or the attempt failed.
+    Tries multiple strategies:
+    1. Simple recv after connect
+    2. HTTP GET request
+    3. HTTP HEAD request
+    4. HELLO command
+    5. QUIT command
+    
+    Returns a decoded string or None if nothing was received or the attempt failed.
+    Timeout is set to 5 seconds.
     """
-    try:
-        sock = socket(AF_INET, SOCK_STREAM)
-        sock.settimeout(2)
-        sock.connect((host, port))
-        data = sock.recv(1024)
-        if not data:
-            return None
-        # decode gracefully and strip newline/NULLs
-        return data.decode('utf-8', errors='ignore').strip('\r\n\x00')
-    except Exception:
-        return None
-    finally:
+    # List of different payloads to try
+    payloads = [
+        b"",  # passive recv first
+        b"GET / HTTP/1.0\r\n\r\n",
+        b"HEAD / HTTP/1.0\r\n\r\n",
+        f"GET / HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n".encode(),
+        b"HELLO\r\n",
+        b"QUIT\r\n",
+    ]
+    
+    for payload in payloads:
         try:
-            sock.close()
+            sock = socket(AF_INET, SOCK_STREAM)
+            sock.settimeout(5)
+            sock.connect((host, port))
+            
+            # Send payload if not empty
+            if payload:
+                sock.send(payload)
+            
+            # Try to receive data
+            data = sock.recv(1024)
+            if data:
+                # decode gracefully and strip newline/NULLs
+                banner = data.decode('utf-8', errors='ignore').strip('\r\n\x00')
+                if banner:
+                    return banner
+        except (TimeoutError, OSError):
+            # Timeout on this attempt, try next
+            continue
         except Exception:
-            pass
+            # Other error, try next payload
+            continue
+        finally:
+            try:
+                sock.close()
+            except Exception:
+                pass
+    
+    return None
 
 
 
