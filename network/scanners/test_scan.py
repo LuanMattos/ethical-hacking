@@ -1,4 +1,4 @@
-from network import advancedscanner as a
+import advancedscanner as a
 
 print('small scan:')
 a.portScan('localhost', [22,80])

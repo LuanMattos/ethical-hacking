@@ -1,12 +1,13 @@
 import os
 import sys
+import sys
+from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.table import Table
 from rich.theme import Theme
 from rich import box
-from pathlib import Path
 import importlib.util
 import argparse
 
@@ -41,6 +42,7 @@ LANGUAGES = {
         "examples_desc": "Scanner ICMP/TCP/UDP usage examples",
         "icmp_examples": "ICMP Scanner Examples",
         "press_enter": "Press Enter to continue...",
+        "enter_target_ip": "Enter target IP address",
     },
     "pt": {
         "welcome": "Bem-vindo ao [b]ZeroDay[/b], uma ferramenta de hacking para todos os cenários possíveis.",
@@ -64,6 +66,7 @@ LANGUAGES = {
         "examples_desc": "Exemplos de uso do Scanner ICMP/TCP/UDP",
         "icmp_examples": "Exemplos do Scanner ICMP",
         "press_enter": "Pressione Enter para continuar...",
+        "enter_target_ip": "Digite o endereço IP alvo",
     },
     "ru": {
         "welcome": "Добро пожаловать в [b]ZeroDay[/b], инструмент для взлома для всех возможных сценариев.",
@@ -87,6 +90,7 @@ LANGUAGES = {
         "examples_desc": "Примеры использования сканера ICMP/TCP/UDP",
         "icmp_examples": "Примеры сканера ICMP",
         "press_enter": "Нажмите Enter для продолжения...",
+        "enter_target_ip": "Введите IP-адрес целевого хоста",
     }
 }
 
@@ -111,36 +115,98 @@ Here you'll find scanners, network attacks like ARP spoofing, wireless attacks, 
 """
 
 SCRIPTS_PATH = Path(__file__).parent
-NETWORK_TOOLS_PATH = SCRIPTS_PATH
 
 # Mapeie aqui os módulos. O label mostrado, caminho do script e um ícone/símbolo bonito
 # "name" e "desc" agora são dicionários com chaves de idioma para facilitar a tradução
 TOOLS = [
-    {"icon": "🌐", "name": {"en": "Advanced Scanner", "pt": "Scanner Avançado", "ru": "Advanced Scanner"},
-                 "path": "advancedscanner.py",
-                 "desc": {"en": "Network host discovery and port scanning", "pt": "Descoberta de hosts e varredura de portas de rede", "ru": "Network host discovery and port scanning"}},
-    {"icon": "🤖", "name": {"en": "Backdoor & Persistence", "pt": "Backdoor e Persistência", "ru": "Backdoor & Persistence"},
-                 "path": "backdoor/backdoor-and-persistence.py",
-                 "desc": {"en": "Persistence & backdoor modules", "pt": "Módulos de persistência e backdoor", "ru": "Persistence & backdoor modules"}},
-    {"icon": "🤖", "name": {"en": "Backdoor & Persistence Generate EXE", "pt": "Gerar EXE de Backdoor e Persistência", "ru": "Backdoor & Persistence Generate EXE"},
-                 "path": "backdoor/backdoor-and-persistence-generate-exe.py",
-                 "desc": {"en": "Persistence & backdoor modules", "pt": "Módulos de persistência e backdoor", "ru": "Persistence & backdoor modules"}},
-    {"icon": "🤖", "name": {"en": "Backdoor & Persistence (listener)", "pt": "Backdoor e Persistência (ouvinte)", "ru": "Backdoor & Persistence (listener)"},
-                 "path": "backdoor/listener.py",
-                 "desc": {"en": "Persistence & backdoor server modules", "pt": "Módulos de servidor de persistência e backdoor", "ru": "Persistence & backdoor server modules"}},
-    {"icon": "🔑", "name": {"en": "BruteSH", "pt": "BruteSH", "ru": "BruteSH"},
-                 "path": "brutesh/main.py",
-                 "desc": {"en": "SSH brute force attack tool", "pt": "Ferramenta de ataque de força bruta SSH", "ru": "SSH brute force attack tool"}},
-    {"icon": "🔒", "name": {"en": "CryptForce", "pt": "CryptForce", "ru": "CryptForce"},
-                 "path": "cryptforce/main.py",
-                 "desc": {"en": "Password/password hash cracking", "pt": "Quebra de senhas/hash de senhas", "ru": "Password/password hash cracking"}},
-    {"icon": "🔎", "name": {"en": "Network Scanners", "pt": "Scanners de Rede", "ru": "Network Scanners"},
-                 "path": "scanner/scanner_line_filter.py",
-                 "desc": {"en": "Live packet capture and filtering", "pt": "Captura e filtragem de pacotes ao vivo", "ru": "Live packet capture and filtering"}},
-    {"icon": "📡", "name": {"en": "AICrack Wireless Attack", "pt": "AICrack Ataque Wireless", "ru": "AICrack Wireless Attack"},
-                 "path": "aicrack.py",
-                 "desc": {"en": "Automated wireless (WPA deauth) attacks", "pt": "Ataques wireless automatizados (desautenticação WPA)", "ru": "Automated wireless (WPA deauth) attacks"}},
-    # Adicione mais conforme for expandindo...
+    {
+        "icon": "🌐",
+        "name": {"en": "Advanced Scanner", "pt": "Scanner Avançado", "ru": "Продвинутый сканер"},
+        "path": "network/scanners/advancedscanner.py",
+        "desc": {
+            "en": "Network host discovery and port scanning",
+            "pt": "Descoberta de hosts e varredura de portas de rede",
+            "ru": "Обнаружение сетевых хостов и сканирование портов",
+        },
+    },
+    {
+        "icon": "🤖",
+        "name": {"en": "Backdoor & Persistence", "pt": "Backdoor e Persistência", "ru": "Бэкдор и постоянство"},
+        "path": "backdoor/backdoor-and-persistence.py",
+        "desc": {
+            "en": "Persistence & backdoor modules",
+            "pt": "Módulos de persistência e backdoor",
+            "ru": "Модули постоянства и бэкдора",
+        },
+    },
+    {
+        "icon": "🤖",
+        "name": {
+            "en": "Backdoor & Persistence Generate EXE",
+            "pt": "Gerar EXE de Backdoor e Persistência",
+            "ru": "Создать EXE бэкдора и постоянства",
+        },
+        "path": "backdoor/backdoor-and-persistence-generate-exe.py",
+        "desc": {
+            "en": "Persistence & backdoor modules",
+            "pt": "Módulos de persistência e backdoor",
+            "ru": "Модули постоянства и бэкдора",
+        },
+    },
+    {
+        "icon": "🤖",
+        "name": {
+            "en": "Backdoor & Persistence (listener)",
+            "pt": "Backdoor e Persistência (ouvinte)",
+            "ru": "Бэкдор и постоянство (слушатель)",
+        },
+        "path": "backdoor/listener.py",
+        "desc": {
+            "en": "Persistence & backdoor server modules",
+            "pt": "Módulos de servidor de persistência e backdoor",
+            "ru": "Серверные модули постоянства и бэкдора",
+        },
+    },
+    {
+        "icon": "📡",
+        "name": {"en": "AICrack Wireless Attack", "pt": "AICrack Ataque Wireless", "ru": "AICrack беспроводная атака"},
+        "path": "network/attack/wireless/aicrack.py",
+        "desc": {
+            "en": "Automated wireless (WPA deauth) attacks",
+            "pt": "Ataques wireless automatizados (desautenticação WPA)",
+            "ru": "Автоматическая беспроводная атака (деаутентификация WPA)",
+        },
+    },
+    {
+        "icon": "🔥",
+        "name": {"en": "SYN Flood Attack", "pt": "Ataque SYN Flood", "ru": "SYN флуд атака"},
+        "path": "network/attack/flags/sf.py",
+        "desc": {
+            "en": "SYN flood network attack (requires target IP)",
+            "pt": "Ataque de inundação SYN (requer IP alvo)",
+            "ru": "Сетевая атака SYN флуд (требуется IP цели)",
+        },
+    },
+    {
+        "icon": "🌐",
+        "name": {"en": "BGP Attack", "pt": "Ataque BGP", "ru": "BGP атака"},
+        "path": "network/BGP/simple-bgp-attack.py",
+        "desc": {
+            "en": "BGP routing attack",
+            "pt": "Ataque de roteamento BGP",
+            "ru": "Атака на маршрутизацию BGP",
+        },
+    },
+    {
+        "icon": "🔓",
+        "name": {"en": "Hasher Utility", "pt": "Utilitário de Hash", "ru": "Утилита хэширования"},
+        "path": "utils/hasher.py",
+        "desc": {
+            "en": "Hash generation and verification utility",
+            "pt": "Utilitário de geração e verificação de hash",
+            "ru": "Утилита генерации и проверки хэша",
+        },
+    },
 ]
 
 def print_logo():
@@ -164,48 +230,48 @@ def show_examples(strings, lang="en"):
         "en": {
             "title": "ICMP/TCP Scanner Usage Examples",
             "examples": [
-                ("ICMP Scan on Web Preset", "python advancedscanner.py -H 192.168.1.100 -x web -M icmp"),
-                ("ICMP Scan on Specific Ports", "python advancedscanner.py -H 192.168.1.100 -p 80,443,8080 -M icmp"),
-                ("ICMP Scan on Port Range", "python advancedscanner.py -H 192.168.1.100 -r 1-100 -M icmp"),
-                ("ICMP Scan on Database Preset", "python advancedscanner.py -H 192.168.1.50 -x database -M icmp"),
-                ("TCP Connect Scan (Default)", "python advancedscanner.py -H 192.168.1.100 -x web"),
-                ("SYN Stealth Scan (Requires Admin)", "python advancedscanner.py -H 192.168.1.100 -x database -M syn"),
-                ("UDP Scan for Services", "python advancedscanner.py -H 192.168.1.100 -p 53,161,123 -M udp"),
-                ("FIN Stealth Scan (Requires Admin)", "python advancedscanner.py -H 192.168.1.100 -x web -M fin"),
-                ("Interactive Mode", "python advancedscanner.py -i"),
-                ("Show All Presets", "python advancedscanner.py --list"),
+                ("ICMP Scan on Web Preset", "python manage.py -H 192.168.1.100 -x web -M icmp"),
+                ("ICMP Scan on Specific Ports", "python manage.py -H 192.168.1.100 -p 80,443,8080 -M icmp"),
+                ("ICMP Scan on Port Range", "python manage.py -H 192.168.1.100 -r 1-100 -M icmp"),
+                ("ICMP Scan on Database Preset", "python manage.py -H 192.168.1.50 -x database -M icmp"),
+                ("TCP Connect Scan (Default)", "python manage.py -H 192.168.1.100 -x web"),
+                ("SYN Stealth Scan (Requires Admin)", "python manage.py -H 192.168.1.100 -x database -M syn"),
+                ("UDP Scan for Services", "python manage.py -H 192.168.1.100 -p 53,161,123 -M udp"),
+                ("FIN Stealth Scan (Requires Admin)", "python manage.py -H 192.168.1.100 -x web -M fin"),
+                ("Interactive Mode", "python manage.py -i"),
+                ("Show All Presets", "python manage.py --list"),
             ],
             "note": "⚠️  ICMP/SYN/FIN scans require Admin (Windows) or Root (Linux) privileges",
         },
         "pt": {
             "title": "Exemplos de Uso do Scanner ICMP/TCP",
             "examples": [
-                ("Scan ICMP em Preset Web", "python advancedscanner.py -H 192.168.1.100 -x web -M icmp"),
-                ("Scan ICMP em Portas Específicas", "python advancedscanner.py -H 192.168.1.100 -p 80,443,8080 -M icmp"),
-                ("Scan ICMP em Range de Portas", "python advancedscanner.py -H 192.168.1.100 -r 1-100 -M icmp"),
-                ("Scan ICMP em Preset de Database", "python advancedscanner.py -H 192.168.1.50 -x database -M icmp"),
-                ("Scan TCP Connect (Padrão)", "python advancedscanner.py -H 192.168.1.100 -x web"),
-                ("Scan SYN Stealth (Requer Admin)", "python advancedscanner.py -H 192.168.1.100 -x database -M syn"),
-                ("Scan UDP para Serviços", "python advancedscanner.py -H 192.168.1.100 -p 53,161,123 -M udp"),
-                ("Scan FIN Stealth (Requer Admin)", "python advancedscanner.py -H 192.168.1.100 -x web -M fin"),
-                ("Modo Interativo", "python advancedscanner.py -i"),
-                ("Mostrar Todos os Presets", "python advancedscanner.py --list"),
+                ("Scan ICMP em Preset Web", "python manage.py -H 192.168.1.100 -x web -M icmp"),
+                ("Scan ICMP em Portas Específicas", "python manage.py -H 192.168.1.100 -p 80,443,8080 -M icmp"),
+                ("Scan ICMP em Range de Portas", "python manage.py -H 192.168.1.100 -r 1-100 -M icmp"),
+                ("Scan ICMP em Preset de Database", "python manage.py -H 192.168.1.50 -x database -M icmp"),
+                ("Scan TCP Connect (Padrão)", "python manage.py -H 192.168.1.100 -x web"),
+                ("Scan SYN Stealth (Requer Admin)", "python manage.py -H 192.168.1.100 -x database -M syn"),
+                ("Scan UDP para Serviços", "python manage.py -H 192.168.1.100 -p 53,161,123 -M udp"),
+                ("Scan FIN Stealth (Requer Admin)", "python manage.py -H 192.168.1.100 -x web -M fin"),
+                ("Modo Interativo", "python manage.py -i"),
+                ("Mostrar Todos os Presets", "python manage.py --list"),
             ],
             "note": "⚠️  Scans ICMP/SYN/FIN requerem privilégios de Admin (Windows) ou Root (Linux)",
         },
         "ru": {
             "title": "Примеры использования сканера ICMP/TCP",
             "examples": [
-                ("Сканирование ICMP в Web Preset", "python advancedscanner.py -H 192.168.1.100 -x web -M icmp"),
-                ("Сканирование ICMP на конкретные порты", "python advancedscanner.py -H 192.168.1.100 -p 80,443,8080 -M icmp"),
-                ("Сканирование ICMP на диапазон портов", "python advancedscanner.py -H 192.168.1.100 -r 1-100 -M icmp"),
-                ("Сканирование ICMP в Database Preset", "python advancedscanner.py -H 192.168.1.50 -x database -M icmp"),
-                ("TCP Connect Scan (По умолчанию)", "python advancedscanner.py -H 192.168.1.100 -x web"),
-                ("SYN Stealth Scan (Требует Admin)", "python advancedscanner.py -H 192.168.1.100 -x database -M syn"),
-                ("UDP Scan для служб", "python advancedscanner.py -H 192.168.1.100 -p 53,161,123 -M udp"),
-                ("FIN Stealth Scan (Требует Admin)", "python advancedscanner.py -H 192.168.1.100 -x web -M fin"),
-                ("Интерактивный режим", "python advancedscanner.py -i"),
-                ("Показать все presets", "python advancedscanner.py --list"),
+                ("Сканирование ICMP в Web Preset", "python manage.py -H 192.168.1.100 -x web -M icmp"),
+                ("Сканирование ICMP на конкретные порты", "python manage.py -H 192.168.1.100 -p 80,443,8080 -M icmp"),
+                ("Сканирование ICMP на диапазон портов", "python manage.py -H 192.168.1.100 -r 1-100 -M icmp"),
+                ("Сканирование ICMP в Database Preset", "python manage.py -H 192.168.1.50 -x database -M icmp"),
+                ("TCP Connect Scan (По умолчанию)", "python manage.py -H 192.168.1.100 -x web"),
+                ("SYN Stealth Scan (Требует Admin)", "python manage.py -H 192.168.1.100 -x database -M syn"),
+                ("UDP Scan для служб", "python manage.py -H 192.168.1.100 -p 53,161,123 -M udp"),
+                ("FIN Stealth Scan (Требует Admin)", "python manage.py -H 192.168.1.100 -x web -M fin"),
+                ("Интерактивный режим", "python manage.py -i"),
+                ("Показать все presets", "python manage.py --list"),
             ],
             "note": "⚠️  Сканы ICMP/SYN/FIN требуют привилегий Admin (Windows) или Root (Linux)",
         },
@@ -252,21 +318,48 @@ def run_tool(index, pre_args="", strings=None, lang='en'):
         strings = LANGUAGES['en']
     
     tool = TOOLS[index]
-    tool_path = NETWORK_TOOLS_PATH / tool["path"]
+    tool_path = SCRIPTS_PATH / tool["path"]
     if not tool_path.exists():
         console.print(f"[warn][!] Module not found: {tool_path}[/warn]")
         return
     
+    # Special handling for Backdoor - requires IP and port input
+    if "backdoor-and-persistence.py" in tool["path"] and not pre_args:
+        console.print("\n[cyan]╔══════════════════════════════════════════╗[/cyan]")
+        console.print("[cyan]║  Backdoor Configuration                 ║[/cyan]")
+        console.print("[cyan]╚══════════════════════════════════════════╝[/cyan]\n")
+        target_ip = Prompt.ask("[option]Enter listener IP address", default="auto")
+        target_port = Prompt.ask("[option]Enter listener port", default="4444")
+        pre_args = f"-i {target_ip} -p {target_port}"
+    
+    # Special handling for SYN Flood Attack - requires target IP input
+    elif "syn-flood" in tool["path"] and not pre_args:
+        target_ip = Prompt.ask(f"[option]{strings.get('enter_target_ip', 'Enter target IP address')}")
+        pre_args = target_ip
+    
     # --- Load modules ---
     spec = importlib.util.spec_from_file_location("module", tool_path)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Add the tool's directory to path for imports
+    tool_dir = str(tool_path.parent)
+    sys.path.insert(0, tool_dir)
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        if tool_dir in sys.path:
+            sys.path.remove(tool_dir)
 
     # resolve localized name for display
     name = tool['name'].get(lang, tool['name'].get('en', '') ) if isinstance(tool['name'], dict) else tool['name']
 
+    # Skip argument prompt for specific tools that don't need manual input
+    skip_arg_prompt = (
+        "backdoor-and-persistence-generate-exe.py" in tool["path"] or
+        "listener.py" in tool["path"]
+    )
+
     # --- Has get_args? ---
-    if hasattr(module, "get_args"):
+    if hasattr(module, "get_args") and not skip_arg_prompt:
         args_info = module.get_args()
 
         # Show nice tables
@@ -279,13 +372,15 @@ def run_tool(index, pre_args="", strings=None, lang='en'):
             table.add_row(arg["flag"], arg["desc"])
 
         console.print(table)
-    else:
+    elif not skip_arg_prompt:
         args_info = []
         console.print(f"[desc]{strings['no_args']}\n")
 
     # --- Answer args ---
     if pre_args:
         args = pre_args
+    elif skip_arg_prompt:
+        args = ""  # No arguments needed for these tools
     else:
         prompt_text = f"[option]{strings['enter_arguments']}"
         args = Prompt.ask(prompt_text, default="")

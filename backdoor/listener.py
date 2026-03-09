@@ -129,12 +129,20 @@ class Listener:
                     print(decoded)
                 
             except KeyboardInterrupt:
-                self._print_separator()
-                self._print_status("Shutting down gracefully...", "info")
-                self._close_connection()
+                self.handle_cancel()
                 break
             except Exception as e:
                 self._print_status(f"Error executing command: {e}", "error")
+    
+    def handle_cancel(self):
+        """Handle Ctrl+C cancellation gracefully"""
+        print("\n")  # New line after ^C
+        self._print_separator()
+        self._print_status("Interrupt received (Ctrl+C)", "info")
+        self._print_status("Shutting down listener...", "info")
+        self._close_connection()
+        self._print_status("Goodbye!", "success")
+        self._print_separator()
     
     def _close_connection(self):
         """Close connection gracefully"""
@@ -186,8 +194,16 @@ Examples:
     print("╚════════════════════════════════════════════════════════════════════╝")
     print("=" * 70 + "\n")
     
-    listener = Listener(ip, args.port)
-    listener.run()
+    try:
+        listener = Listener(ip, args.port)
+        listener.run()
+    except KeyboardInterrupt:
+        print("\n")
+        print("=" * 70)
+        print("[ℹ️] Interrupted during setup")
+        print("[✅] Exiting...")
+        print("=" * 70)
+        sys.exit(0)
 
 
 if __name__ == "__main__":

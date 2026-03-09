@@ -294,7 +294,6 @@ def connScan(tgtHost, tgtPort, status):
 
 
 def synScan(tgtHost, tgtPort, status):
-    print(" \n COMER SEU CU \n ")
     """SYN Scan (Half-open) - Requires elevated privileges (Windows/Linux)
 
     Attempts a half-open scan using raw sockets via scapy. If the process

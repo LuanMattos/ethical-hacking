@@ -5,6 +5,15 @@ from rich.prompt import Prompt
 
 console = Console()
 
+def get_args():
+    """Return argument information for the launcher"""
+    return [
+        {"flag": "Interface", "desc": "Wireless interface in monitor mode (e.g., wlp6s0mon)"},
+        {"flag": "BSSID", "desc": "Access point MAC address (e.g., fe80::c18a:b505:4f0c:aae8)"},
+        {"flag": "ESSID", "desc": "Name of the target WiFi network"},
+        {"flag": "Count", "desc": "Number of deauth packets (0 = infinite, default: 0)"},
+    ]
+
 def header():
     console.print("[b cyan]AICrack - Automated Wireless Deauthentication[/b cyan]\n", style="bold blue")
     console.print("Automates aireplay-ng deauthentication attacks for WPA/WPA2 networks.\n")
