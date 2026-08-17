@@ -49,8 +49,8 @@ This repository contains a collection of scripts for penetration testing and cyb
 ## Usage
 - clone project https://github.com/LuanMattos/ethical-hacking.git
 - .\venv\Scripts\activate (Windows) or source venv/bin/activate (Linux)
-- cd .\network\
-- python .\zeroday.py (for options)
+- cd .\ethical-hacking
+- python .\manage.py (for options)
 
 ## 🎯 Intended Audience
 
@@ -68,9 +68,7 @@ This repository includes examples such as:
 - Advanced Scanner
 - Backdoor & Persistence (To run on victim machine)
 - Server to Backdoor & Persistence (To run on your machine)
-- BruteSH
-- CryptForce
-- Network Scanners
+- Network Attack
 - AICrack Wireless Attack
 
 > ⚠️ These tools are intended to be used **only** in isolated labs, test environments, or with **explicit authorization**.
