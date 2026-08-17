@@ -188,6 +188,34 @@ TOOLS = [
         },
     },
     {
+        "icon": "🛡️ ",
+        "name": {
+            "en": "HTTP Security Test",
+            "pt": "Teste de Segurança HTTP",
+            "ru": "Тест безопасности HTTP",
+        },
+        "path": "network/attack/flags/hsf.py",
+        "desc": {
+            "en": "Authorized HTTP security checks (headers, methods, TLS)",
+            "pt": "Verificações HTTP autorizadas (headers, metodos, TLS)",
+            "ru": "Авторизованные проверки HTTP (заголовки, методы, TLS)",
+        },
+    },
+    {
+        "icon": "🚨",
+        "name": {
+            "en": "Wrong HTTP Package",
+            "pt": "Pacote HTTP Inválido",
+            "ru": "Неверный HTTP пакет",
+        },
+        "path": "network/attack/flags/wrong_package_http.py",
+        "desc": {
+            "en": "Simulated malformed HTTP request over TCP",
+            "pt": "Requisição HTTP malformada simulada sobre TCP",
+            "ru": "Симулированный невалидный HTTP-запрос поверх TCP",
+        },
+    },
+    {
         "icon": "🌐",
         "name": {"en": "BGP Attack", "pt": "Ataque BGP", "ru": "BGP атака"},
         "path": "network/BGP/simple-bgp-attack.py",
@@ -205,6 +233,16 @@ TOOLS = [
             "en": "Hash generation and verification utility",
             "pt": "Utilitário de geração e verificação de hash",
             "ru": "Утилита генерации и проверки хэша",
+        },
+    },
+    {
+        "icon": "📚",
+        "name": {"en": "Learning Network", "pt": "Learning Network", "ru": "Learning Network"},
+        "path": "network/learning/menu.py",
+        "desc": {
+            "en": "Interactive catalogue of every Internet protocol with animated Scapy packet demos",
+            "pt": "Catálogo interativo de todos os protocolos da Internet com demos animadas em Scapy",
+            "ru": "Интерактивный каталог всех интернет-протоколов с анимированными демо на Scapy",
         },
     },
 ]
@@ -322,6 +360,25 @@ def run_tool(index, pre_args="", strings=None, lang='en'):
     if not tool_path.exists():
         console.print(f"[warn][!] Module not found: {tool_path}[/warn]")
         return
+
+    module = None
+    if "wrong_package_http.py" in tool["path"]:
+        spec = importlib.util.spec_from_file_location("module", tool_path)
+        module = importlib.util.module_from_spec(spec)
+        tool_dir = str(tool_path.parent)
+        sys.path.insert(0, tool_dir)
+        try:
+            spec.loader.exec_module(module)
+        except ModuleNotFoundError as exc:
+            missing_pkg = exc.name if getattr(exc, "name", None) else "unknown package"
+            console.print(f"[warn][!] Missing dependency: {missing_pkg}[/warn]")
+            console.print("[desc]Install dependencies with:[/desc] [cyan]pip install -r requirements.txt[/cyan]")
+            return
+        finally:
+            if tool_dir in sys.path:
+                sys.path.remove(tool_dir)
+        if hasattr(module, "print_ipv4_guide"):
+            module.print_ipv4_guide(lang)
     
     # Special handling for Backdoor - requires IP and port input
     if "backdoor-and-persistence.py" in tool["path"] and not pre_args:
@@ -336,18 +393,48 @@ def run_tool(index, pre_args="", strings=None, lang='en'):
     elif "syn-flood" in tool["path"] and not pre_args:
         target_ip = Prompt.ask(f"[option]{strings.get('enter_target_ip', 'Enter target IP address')}")
         pre_args = target_ip
+
+    # Special handling for HTTP Security Test - URL, port and packet count
+    elif "network/attack/flags/hsf.py" in tool["path"] and not pre_args:
+        target_url = Prompt.ask("[option]Enter target URL/host", default="example.com")
+        target_port = Prompt.ask("[option]Enter target port", default="80")
+        packet_count = Prompt.ask("[option]Enter SYN packet count", default="1")
+        syn_per_burst = Prompt.ask("[option]Enter SYNs per burst", default="2")
+        pre_args = f"{target_url} -p {target_port} -n {packet_count} -s {syn_per_burst}"
+
+    # Special handling for malformed HTTP request - source, destination, source port, and HTTP fields
+    elif "wrong_package_http.py" in tool["path"] and not pre_args:
+        target_url = Prompt.ask("[option]Enter target URL/host", default="localhost")
+        src_ip = Prompt.ask("[option]Enter source IP", default="192.168.1.10")
+        target_port = Prompt.ask("[option]Enter target port", default="80")
+        src_port = Prompt.ask("[option]Enter source port", default="12345")
+        host_header = Prompt.ask("[option]Enter Host header", default="localhost")
+        method = Prompt.ask("[option]Enter HTTP method", default="GET")
+        path = Prompt.ask("[option]Enter HTTP path", default="/")
+        version = Prompt.ask("[option]Enter HTTP version", default="HTTP/1.1")
+        packet_count = Prompt.ask("[option]Enter number of sends", default="1")
+        pre_args = (
+            f"{target_url} -s {src_ip} -p {target_port} --sport {src_port} "
+            f"-H {host_header} -m {method} -P {path} -V {version} -n {packet_count}"
+        )
     
     # --- Load modules ---
-    spec = importlib.util.spec_from_file_location("module", tool_path)
-    module = importlib.util.module_from_spec(spec)
-    # Add the tool's directory to path for imports
-    tool_dir = str(tool_path.parent)
-    sys.path.insert(0, tool_dir)
-    try:
-        spec.loader.exec_module(module)
-    finally:
-        if tool_dir in sys.path:
-            sys.path.remove(tool_dir)
+    if module is None:
+        spec = importlib.util.spec_from_file_location("module", tool_path)
+        module = importlib.util.module_from_spec(spec)
+        # Add the tool's directory to path for imports
+        tool_dir = str(tool_path.parent)
+        sys.path.insert(0, tool_dir)
+        try:
+            spec.loader.exec_module(module)
+        except ModuleNotFoundError as exc:
+            missing_pkg = exc.name if getattr(exc, "name", None) else "unknown package"
+            console.print(f"[warn][!] Missing dependency: {missing_pkg}[/warn]")
+            console.print("[desc]Install dependencies with:[/desc] [cyan]pip install -r requirements.txt[/cyan]")
+            return
+        finally:
+            if tool_dir in sys.path:
+                sys.path.remove(tool_dir)
 
     # resolve localized name for display
     name = tool['name'].get(lang, tool['name'].get('en', '') ) if isinstance(tool['name'], dict) else tool['name']
@@ -355,7 +442,8 @@ def run_tool(index, pre_args="", strings=None, lang='en'):
     # Skip argument prompt for specific tools that don't need manual input
     skip_arg_prompt = (
         "backdoor-and-persistence-generate-exe.py" in tool["path"] or
-        "listener.py" in tool["path"]
+        "listener.py" in tool["path"] or
+        "network/learning/menu.py" in tool["path"].replace("\\", "/")
     )
 
     # --- Has get_args? ---
@@ -389,7 +477,10 @@ def run_tool(index, pre_args="", strings=None, lang='en'):
     console.print(launching_text)
 
     import subprocess
-    cmd = [sys.executable, str(tool_path)] + args.split()
+    cmd = [sys.executable, str(tool_path)]
+    if "wrong_package_http.py" in str(tool_path) or "network/learning/menu.py" in str(tool_path).replace("\\", "/"):
+        cmd.extend(["--lang", lang])
+    cmd.extend(args.split())
     subprocess.run(cmd)
 
 def main():
