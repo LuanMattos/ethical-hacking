@@ -245,6 +245,17 @@ TOOLS = [
             "ru": "Интерактивный каталог всех интернет-протоколов с анимированными демо на Scapy",
         },
     },
+    # Utils must always stay last in this list.
+    {
+        "icon": "🧰",
+        "name": {"en": "Utils", "pt": "Utils", "ru": "Utils"},
+        "path": "utils/jwt_utils/menu.py",
+        "desc": {
+            "en": "Utility submenu: JWT decode/build",
+            "pt": "Submenu de utilitários: decodificar/criar JWT",
+            "ru": "Подменю утилит: декодирование/создание JWT",
+        },
+    },
 ]
 
 def print_logo():
@@ -443,7 +454,8 @@ def run_tool(index, pre_args="", strings=None, lang='en'):
     skip_arg_prompt = (
         "backdoor-and-persistence-generate-exe.py" in tool["path"] or
         "listener.py" in tool["path"] or
-        "network/learning/menu.py" in tool["path"].replace("\\", "/")
+        "network/learning/menu.py" in tool["path"].replace("\\", "/") or
+        "utils/jwt_utils/menu.py" in tool["path"].replace("\\", "/")
     )
 
     # --- Has get_args? ---
@@ -478,7 +490,9 @@ def run_tool(index, pre_args="", strings=None, lang='en'):
 
     import subprocess
     cmd = [sys.executable, str(tool_path)]
-    if "wrong_package_http.py" in str(tool_path) or "network/learning/menu.py" in str(tool_path).replace("\\", "/"):
+    if ("wrong_package_http.py" in str(tool_path)
+            or "network/learning/menu.py" in str(tool_path).replace("\\", "/")
+            or "utils/jwt_utils/menu.py" in str(tool_path).replace("\\", "/")):
         cmd.extend(["--lang", lang])
     cmd.extend(args.split())
     subprocess.run(cmd)
