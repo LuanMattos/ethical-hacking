@@ -4,29 +4,31 @@ This is the *second session* launched from ZeroDay's main menu ("Learning
 Network"). It lists every protocol category requested, lets the user pick a
 protocol, and plays an animated terminal "demo" of how that protocol behaves.
 
-Real packets are crafted with Scapy where a suitable layer exists (never sent
-on the wire by default). For protocols with no meaningful software-only demo
+Real packets are crafted with Scapy where a suitable layer exists and can be
+sent after an explicit confirmation. For protocols with no meaningful software-only demo
 (physical media standards, cellular/Wi-Fi PHY, Bluetooth radio, etc.) a short
 conceptual animated explanation is generated instead.
 """
 import sys
 import argparse
+import json
 from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 from rich.theme import Theme
 from rich import box
 
 sys.path.insert(0, str(Path(__file__).parent))
 from data import all_categories          # noqa: E402
 from animator import run_flow            # noqa: E402
-from scapy_demos import get_demo_steps, BUILDERS  # noqa: E402
+from scapy_demos import get_demo_steps, BUILDERS, maybe_send  # noqa: E402
 from explain import show_source_info     # noqa: E402
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+LANGUAGE_CACHE = Path.home() / ".zeroday_learning_network_cache.json"
 
 console = Console(theme=Theme({
     "title": "bold magenta",
@@ -48,6 +50,7 @@ STRINGS = {
         "select_protocol": "Select a protocol number (0 to go back)",
         "invalid": "Invalid option.",
         "press_enter": "Press Enter to continue...",
+        "send_packet": "Send this packet to the network?",
         "goodbye": "Goodbye!",
         "back": "back",
     },
@@ -63,6 +66,7 @@ STRINGS = {
         "select_protocol": "Selecione o número do protocolo (0 para voltar)",
         "invalid": "Opção inválida.",
         "press_enter": "Pressione Enter para continuar...",
+        "send_packet": "Enviar este pacote para a rede?",
         "goodbye": "Até logo!",
         "back": "voltar",
     },
@@ -78,6 +82,7 @@ STRINGS = {
         "select_protocol": "Выберите номер протокола (0 назад)",
         "invalid": "Неверный вариант.",
         "press_enter": "Нажмите Enter для продолжения...",
+        "send_packet": "Отправить этот пакет в сеть?",
         "goodbye": "До свидания!",
         "back": "назад",
     },
@@ -105,9 +110,10 @@ def conceptual_steps(entry, lang):
         "ru": f"Смоделированная единица трафика {name} между узлами",
     }.get(lang)
     return [
-        {"label": overview, "direction": "info"},
-        {"label": step1, "direction": "info"},
-        {"label": step2, "direction": "send", "packet_summary": f"{name} PDU"},
+        {"label": overview, "direction": "info", "wireshark_filter": "frame"},
+        {"label": step1, "direction": "info", "wireshark_filter": "frame"},
+        {"label": step2, "direction": "send", "packet_summary": f"{name} PDU",
+         "wireshark_filter": "frame"},
     ]
 
 
@@ -120,6 +126,15 @@ def run_demo(entry, lang):
         steps = conceptual_steps(entry, lang)
         builder_key = None
     run_flow(console, entry["name"], steps)
+
+    for step in steps:
+        packet = step.get("packet")
+        if packet is not None and step.get("direction") == "send":
+            maybe_send(
+                console,
+                packet,
+                lambda: Confirm.ask(STRINGS[lang]["send_packet"], default=True),
+            )
 
     if builder_key and builder_key in BUILDERS:
         show_source_info(console, BUILDERS[builder_key], PROJECT_ROOT, lang, kind="scapy")
@@ -157,12 +172,39 @@ def show_protocols(category, lang):
     return protocols
 
 
+def load_language_cache():
+    try:
+        with LANGUAGE_CACHE.open("r", encoding="utf-8") as cache_file:
+            language = json.load(cache_file).get("language")
+        return language if language in STRINGS else None
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def save_language_cache(language):
+    try:
+        with LANGUAGE_CACHE.open("w", encoding="utf-8") as cache_file:
+            json.dump({"language": language}, cache_file, ensure_ascii=True, indent=2)
+            cache_file.write("\n")
+    except OSError:
+        pass
+
+
 def main():
     parser = argparse.ArgumentParser(description="Learning Network — protocol demos")
-    parser.add_argument("--lang", dest="language", type=str, default="en",
+    parser.add_argument("--lang", dest="language", type=str, default=None,
                          choices=["en", "pt", "ru"], help="Language: en, pt, ru")
     args = parser.parse_args()
-    lang = args.language if args.language in STRINGS else "en"
+    cached_language = load_language_cache()
+    if args.language in STRINGS:
+        lang = args.language
+    else:
+        lang = Prompt.ask(
+            "Select language / Selecione o idioma / Выберите язык",
+            choices=list(STRINGS),
+            default=cached_language or "en",
+        )
+    save_language_cache(lang)
     strings = STRINGS[lang]
 
     console.print(Panel.fit(f"[bold cyan]{strings['header']}[/bold cyan]\n[desc]{strings['sub']}[/desc]",

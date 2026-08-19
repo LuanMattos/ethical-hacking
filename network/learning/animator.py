@@ -65,6 +65,9 @@ def run_flow(console: Console, title: str, steps: list, left: str = "Client",
     - packet_summary: optional text describing the simulated packet/frame
     """
     console.print(Panel.fit(f"[bold cyan]{title}[/bold cyan]", box=box.ROUNDED, border_style="cyan"))
+    filters = sorted({step.get("wireshark_filter") for step in steps if step.get("wireshark_filter")})
+    if filters:
+        console.print("[bold yellow]Wireshark display filter:[/bold yellow] " + " | ".join(filters))
     total = len(steps)
     for i, step in enumerate(steps, 1):
         label = step.get("label", "")
